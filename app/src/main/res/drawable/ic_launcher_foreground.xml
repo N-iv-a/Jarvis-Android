@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Icona in foreground: una "J" stilizzata indigo su viewport 108x108.
+    Gli adaptive icon hanno una viewport 108dp di cui solo 72dp al centro
+    sono garantiti visibili (safe zone) — i bordi possono essere tagliati
+    dal mascheramento del launcher.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#8B8CF6"
+        android:pathData="M62,30 L62,68 C62,74 57,79 51,79 C45,79 40,74 40,68 L40,62 L48,62 L48,68 C48,69.7 49.3,71 51,71 C52.7,71 54,69.7 54,68 L54,30 Z" />
+</vector>

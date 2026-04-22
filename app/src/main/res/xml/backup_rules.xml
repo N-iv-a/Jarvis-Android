@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Regole di backup per API < 31.
+    <exclude domain="..." /> dice: NON includere MAI questi dati nel backup.
+    Siccome allowBackup=false, questo file è più che altro una cintura in più
+    rispetto alle bretelle.
+-->
+<full-backup-content>
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="external" path="." />
+    <exclude domain="root" path="." />
+</full-backup-content>

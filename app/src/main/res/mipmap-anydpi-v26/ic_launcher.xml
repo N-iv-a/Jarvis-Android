@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Adaptive icon per Android 8.0+ (API 26+), unica versione che serve
+    visto che minSdk = 26.
+
+    Un adaptive icon è fatto di:
+    - background: il livello di fondo (colore pieno o pattern)
+    - foreground: il livello sopra (il logo vero e proprio)
+    Il sistema li maschera con forme diverse (cerchio, squircle, ecc.)
+    a seconda del launcher.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>

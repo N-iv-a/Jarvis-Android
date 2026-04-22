@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Data Extraction Rules (Android 12+ / API 31+).
+    Controllo granulare su cloud backup e device-to-device transfer.
+
+    cloud-backup:     trasferimento verso Google Drive
+    device-transfer:  trasferimento durante setup di un nuovo device
+
+    Escludiamo TUTTO in entrambi i casi. Se l'utente cambia telefono,
+    deve re-inserire tutto manualmente — per design, nessun dato
+    lascia MAI questo dispositivo in chiaro.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="root" path="." />
+    </cloud-backup>
+
+    <device-transfer>
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="root" path="." />
+    </device-transfer>
+</data-extraction-rules>

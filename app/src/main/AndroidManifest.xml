@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        Permessi:
+        - USE_BIOMETRIC: sblocco con impronta/faccia (API 29+)
+        - USE_FINGERPRINT: retrocompatibilità per API 26-28
+
+        NOTA: INTERNET NON è richiesto in questa fase.
+        Verrà aggiunto solo quando serviremo sync esterno (es. BudgetBakers).
+        Senza INTERNET, l'app non può fare NESSUNA chiamata di rete —
+        garanzia forte di privacy.
+    -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+
+    <application
+        android:name=".JarvisApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Jarvis"
+        android:usesCleartextTraffic="false"
+        android:hasFragileUserData="true"
+        tools:targetApi="31">
+
+        <!--
+            allowBackup=false          → niente backup automatico su Google Drive
+            usesCleartextTraffic=false → blocca qualsiasi richiesta HTTP non cifrata
+            hasFragileUserData=true    → all'uninstall chiede conferma (evita perdite accidentali)
+            dataExtractionRules        → controllo granulare su cosa può uscire dal device (Android 12+)
+            backup_rules               → fallback per API < 31
+        -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode"
+            android:theme="@style/Theme.Jarvis">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

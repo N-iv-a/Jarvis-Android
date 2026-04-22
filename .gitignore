@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore — MAI committare
+*.jks
+*.keystore
+keystore.properties
+
+# Secrets
+secrets.properties
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# APK/AAB output
+*.apk
+*.aab
+
+# Claude Code locale
+.claude/
+CLAUDE.md

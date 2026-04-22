@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Tema XML usato SOLO per la splash screen iniziale (prima che Compose prenda il controllo).
+    Dopo l'onCreate di MainActivity, l'intera UI è gestita da Compose (JarvisTheme.kt).
+-->
+<resources>
+    <style name="Theme.Jarvis" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:statusBarColor">@color/splash_background</item>
+        <item name="android:navigationBarColor">@color/splash_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
