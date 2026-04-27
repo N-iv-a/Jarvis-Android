@@ -1,8 +1,13 @@
 package com.jarvis.app
 
 import android.app.Application
+import com.jarvis.app.data.habits.HabitSeeder
 import com.jarvis.app.data.security.AppLockManager
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -17,22 +22,29 @@ import javax.inject.Inject
 @HiltAndroidApp
 class JarvisApplication : Application() {
 
-    /**
-     * Iniettato eagerly per garantire che l'observer del ProcessLifecycle
-     * venga registrato PRIMA che qualsiasi Activity parta. Senza questo,
-     * il primo ON_STOP dopo il lancio potrebbe non essere intercettato.
-     *
-     * Il riferimento non serve a nulla a runtime: è solo un "trigger"
-     * per far sì che Hilt costruisca il singleton subito.
-     */
     @Inject
     lateinit var appLockManager: AppLockManager
 
+    @Inject
+    lateinit var habitSeeder: HabitSeeder
+
+    /**
+     * Scope separato dal viewModelScope per lanciare lavoro one-shot all'avvio
+     * (seeding abitudini). SupervisorJob: un errore non affonda tutto lo scope.
+     * IO dispatcher: lavoro DB.
+     */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
-        // Tocchiamo il field per essere sicuri che venga inizializzato.
-        // Non è strettamente necessario (Hilt lo fa comunque prima di onCreate
-        // terminare grazie a @Inject lateinit), ma rende l'intento esplicito.
+        // Eager-init del lock (v. documentazione di AppLockManager).
         appLockManager.hashCode()
+
+        // Semina abitudini se DB vuoto. Fire-and-forget: se fallisce, l'app
+        // continua a funzionare (le abitudini appariranno al successivo boot
+        // quando retry-eremo, o zero abitudini → UI vuota con messaggio).
+        appScope.launch {
+            runCatching { habitSeeder.seedIfEmpty() }
+        }
     }
 }

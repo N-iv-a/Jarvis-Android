@@ -3,6 +3,9 @@ package com.jarvis.app.data.db
 import android.content.Context
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteOpenHelper
+import com.jarvis.app.data.habits.HabitDao
+import com.jarvis.app.data.habits.HabitWeeklyScoreDao
+import com.jarvis.app.data.habits.PointTransactionDao
 import com.jarvis.app.data.security.DatabasePassphraseManager
 import com.jarvis.app.data.tasks.TaskDao
 import dagger.Module
@@ -61,4 +64,15 @@ object DatabaseModule {
      */
     @Provides
     fun provideTaskDao(database: JarvisDatabase): TaskDao = database.taskDao()
+
+    @Provides
+    fun provideHabitDao(database: JarvisDatabase): HabitDao = database.habitDao()
+
+    @Provides
+    fun providePointTransactionDao(database: JarvisDatabase): PointTransactionDao =
+        database.pointTransactionDao()
+
+    @Provides
+    fun provideHabitWeeklyScoreDao(database: JarvisDatabase): HabitWeeklyScoreDao =
+        database.habitWeeklyScoreDao()
 }
