@@ -1,91 +1,103 @@
 # Jarvis Mobile
 
-App Android nativa, personale e privata — task manager con sotto-task e un sistema di abitudini gamificato (punti settimanali), pensata per girare solo sul telefono, senza account né cloud.
+A native, personal, private Android app — a task manager with subtasks and a gamified habit system (weekly points), meant to live entirely on the phone, with no account and no cloud.
 
-> Nota sul repo: esiste una versione precedente in JavaScript (`Progetto_Jarvis`), abbandonata a favore di questa riscrittura nativa Android.
+> Repo note: there's a previous JavaScript version (`Progetto_Jarvis`), abandoned in favor of this native Android rewrite — see "Evolution" below.
 
-## 1. Problema
+## Evolution: from web app to native Android
 
-Le app di task/habit tracking esistenti (Todoist, Habitica, ecc.) impongono le loro regole: come si "vince" una settimana, come si assegnano i punti, cosa succede se modifichi un check-in a posteriori. Jarvis nasce per avere quella logica su misura — vedi `PointsService`, che riconcilia il punteggio a ogni modifica di check-in invece di limitarsi a sommare spunte — e per tenere i dati (task, abitudini, note personali) fuori dai server di terzi.
+The first version (`Progetto_Jarvis`, a single commit, later abandoned) was a classic web app: **FastAPI + React (Vite) + SQLite**, with two working modules — a task manager and a finance tracker (automatic sync from BudgetBakers Wallet via API, with IBAN masking on account names) — plus a planned Google Calendar integration via OAuth.
 
-## 2. Approccio
+The backend-plus-webapp model stopped making sense for how I actually use this tool:
 
-App Android nativa a singola Activity, Jetpack Compose + Hilt per l'injection, Room per la persistenza.
+- **Keeping a server running for a single user (me) is complexity without benefit.** No multi-device sync was ever really needed — just my phone.
+- **The sensitive-configuration surface was growing, not shrinking:** a Google OAuth client secret, a Wallet API token, a `.env` to protect server-side — all avoidable if the data stays on-device, behind the Keystore.
+- **A native app is simply there, on the phone, locked until I unlock it with a fingerprint** — no "open the browser, point it at localhost".
+
+The finance tracker hasn't been ported back (yet): integrating an external API (Wallet) reintroduces exactly the problem the native rewrite was meant to remove — a token that has to be kept safe on-device. It's on the roadmap, but it needs to be rethought for the new model, not just ported over.
+
+## 1. Problem
+
+Existing task/habit-tracking apps (Todoist, Habitica, etc.) impose their own rules: how a week is "won", how points are awarded, what happens if you edit a check-in after the fact. Jarvis exists to have that logic custom-built — see `PointsService`, which reconciles the score on every check-in change instead of just summing ticks — and to keep the data (tasks, habits, personal notes) off third-party servers.
+
+## 2. Approach
+
+Native Android app, single Activity, Jetpack Compose + Hilt for injection, Room for persistence.
 
 ```
 app/src/main/java/com/jarvis/app/
 ├── data/
 │   ├── db/          Room database (JarvisDatabase)
 │   ├── security/     AppLockManager, BiometricAuthManager, DatabasePassphraseManager
-│   ├── tasks/        Entity/Dao/Repository per task + sotto-task
-│   └── habits/       Entity/Dao/Repository per abitudini, check-in, punteggio settimanale
+│   ├── tasks/        Entity/Dao/Repository for tasks + subtasks
+│   └── habits/       Entity/Dao/Repository for habits, check-ins, weekly score
 ├── domain/
-│   ├── tasks/         Modelli di dominio task
-│   └── habits/        PointsService (motore punti), WeeklyProgress
+│   ├── tasks/         Task domain models
+│   └── habits/        PointsService (points engine), WeeklyProgress
 └── ui/
     ├── screens/        Lock screen, welcome
-    ├── tasks/          Liste, editor
-    ├── habits/          Liste, regole, viewmodel
-    └── navigation/      Grafo di navigazione Compose
+    ├── tasks/          Lists, editor
+    ├── habits/          Lists, rules, viewmodel
+    └── navigation/      Compose navigation graph
 ```
 
-Il database Room è cifrato con SQLCipher; la passphrase (32 byte casuali) viene generata al primo avvio e salvata in `EncryptedSharedPreferences`, a sua volta protetta da una chiave nell'Android Keystore (hardware-backed dove disponibile). L'app si blocca automaticamente ogni volta che va in background (`AppLockManager`, agganciato al `ProcessLifecycleOwner`) e richiede sblocco biometrico per rientrare.
+The Room database is encrypted with SQLCipher; the passphrase (32 random bytes) is generated on first launch and stored in `EncryptedSharedPreferences`, itself protected by a key in the Android Keystore (hardware-backed where available). The app locks automatically every time it goes to background (`AppLockManager`, hooked into `ProcessLifecycleOwner`) and requires biometric unlock to come back.
 
-## 3. Scelte e trade-off
+## 3. Choices and trade-offs
 
-- **Nativo Android invece di un backend + webapp.** Per uno strumento a uso singolo (io, sul mio telefono), un server da mantenere online sarebbe complessità senza beneficio: nessuna sincronizzazione multi-dispositivo è richiesta oggi. Il costo è che i dati vivono solo su quel telefono — vedi anti-feature sotto.
-- **SQLCipher invece di un DB in chiaro.** Task e abitudini personali (incluse eventuali note) non devono essere leggibili nemmeno da un backup ADB o da un telefono rootato.
-- **Passphrase generata a runtime, mai hardcoded.** Nessun segreto nel codice o nella configurazione di build: la chiave vive esclusivamente nel Keystore del dispositivo.
-- **Riconciliazione dello stato invece di eventi accumulativi** in `PointsService`: ogni check-in ricalcola se la settimana è "vinta" e confronta con lo stato salvato, invece di sommare punti a ogni tap. Più codice, ma corretto anche quando l'utente toglie uno spunta messo per errore.
+- **Native Android instead of a backend + webapp.** For a single-user tool (me, on my phone), a server to keep online would be complexity without benefit: no multi-device sync is actually required today. The cost is that data lives only on that phone — see the anti-feature below.
+- **SQLCipher instead of a plaintext DB.** Personal tasks and habits (including any notes) shouldn't be readable even from an ADB backup or a rooted phone.
+- **Passphrase generated at runtime, never hardcoded.** No secret in the code or build config: the key lives exclusively in the device Keystore.
+- **State reconciliation instead of accumulating events** in `PointsService`: every check-in recomputes whether the week is "won" and compares it against the saved state, instead of just summing points on every tap. More code, but correct even when the user un-ticks a check-in made by mistake.
 
 ## 4. Anti-features
 
-Scelte deliberate, non dimenticanze:
+Deliberate choices, not oversights:
 
-- **Nessun account, nessun cloud sync.** `allowBackup=false`, nessun permesso `INTERNET` nel manifest. Se cambi telefono senza backup manuale, i dati restano sul vecchio.
-- **Nessuna copia esterna del database.** Non esiste un export automatico: nel modello di minaccia di quest'app, la comodità di un backup su Drive pesa meno del rischio di un DB in chiaro fuori dal Keystore del dispositivo.
-- **Nessuna gamification "social".** Niente classifiche, niente condivisione punti: sono punti per me, non per competere.
+- **No account, no cloud sync.** `allowBackup=false`, no `INTERNET` permission in the manifest. Switch phones without a manual backup, and the data stays on the old one.
+- **No external database copy.** There's no automatic export: in this app's threat model, the convenience of a Drive backup weighs less than the risk of a plaintext DB outside the device Keystore.
+- **No "social" gamification.** No leaderboards, no sharing points: they're points for me, not for competing.
 
 ## 5. Design principles
 
-- **Stato bloccato di default.** `AppLockManager` parte con `isLocked = true` e si riblocca a ogni `onStop` del processo — l'eccezione esplicita è il flag `authInProgress`, per non ribloccare l'app nel breve istante in cui il prompt biometrico di sistema apre la propria Activity.
-- **Idempotenza sopra tutto in `PointsService`.** Il ledger punti si scrive solo quando lo stato "vinta/non vinta" della settimana cambia davvero: rieseguire la riconciliazione più volte sullo stesso stato non produce duplicati.
+- **Locked by default.** `AppLockManager` starts with `isLocked = true` and re-locks on every process `onStop` — the explicit exception is the `authInProgress` flag, so the app doesn't re-lock in the brief moment the system biometric prompt opens its own Activity.
+- **Idempotency above all in `PointsService`.** The points ledger is only written when the week's "won/not won" state actually changes: re-running reconciliation multiple times on the same state produces no duplicates.
 
-## 6. Cosa farei diversamente
+## 6. What I'd do differently
 
-- `PointsService.reconcileWeek` scrive l'inserimento nel ledger e l'aggiornamento dello score in due chiamate separate invece che in una `@Transaction` Room: un crash tra le due lascerebbe il ledger leggermente disallineato (si auto-corregge al check-in successivo, ma non dovrebbe poter succedere).
-- Il nome della cartella di progetto (`The Sims/`, visibile nel primo README) era un residuo del setup iniziale, non un nome scelto: va ripulito quando riorganizzo la struttura.
-- Nessun test automatico ancora, né per `PointsService` né per i DAO — è la lacuna più seria del repo a oggi, soprattutto data la logica non banale di riconciliazione.
+- `PointsService.reconcileWeek` writes the ledger insert and the score update as two separate calls instead of a single Room `@Transaction`: a crash between the two would leave the ledger slightly out of sync (it self-corrects on the next check-in for that week, but it shouldn't be able to happen at all).
+- The project folder name (`The Sims/`, visible in the first README) was a leftover from the initial setup, not a chosen name — needs cleaning up next time the structure gets reorganized.
+- No automated tests yet, neither for `PointsService` nor the DAOs — the most serious gap in the repo today, especially given the non-trivial reconciliation logic.
 
-## 7. Roadmap — stato attuale
+## 7. Roadmap — current state
 
-- [x] Task + sotto-task (CRUD completo)
-- [x] Abitudini con check-in, punteggio settimanale, motore di riconciliazione punti
-- [x] Blocco app + sblocco biometrico
-- [x] Database cifrato (SQLCipher + Keystore)
-- [ ] Finance tracker (in progetto iniziale, non ancora avviato)
-- [ ] Test automatici (unit su `PointsService`, DAO)
-- [ ] Export/backup manuale locale (fuori dal cloud, su richiesta esplicita dell'utente)
+- [x] Tasks + subtasks (full CRUD)
+- [x] Habits with check-ins, weekly score, points-reconciliation engine
+- [x] App lock + biometric unlock
+- [x] Encrypted database (SQLCipher + Keystore)
+- [ ] Finance tracker (built in the original project, not yet started here)
+- [ ] Automated tests (unit tests for `PointsService`, DAOs)
+- [ ] Manual local export/backup (kept off the cloud, on explicit user request)
 
-## Screenshot
+## Screenshots
 
-_[da aggiungere]_
+_[to add]_
 
 ## Setup
 
-- **Android Studio** (Hedgehog 2023.1.1 o più recente) — https://developer.android.com/studio
-- **JDK 17** (incluso in Android Studio)
-- Telefono Android API 26+ con debug USB attivo
+- **Android Studio** (Hedgehog 2023.1.1 or newer) — https://developer.android.com/studio
+- **JDK 17** (bundled with Android Studio)
+- An Android phone, API 26+, with USB debugging enabled
 
 ```
-Apri Android Studio → Open → seleziona la cartella del progetto
-Attendi la sincronizzazione Gradle (~500MB al primo avvio)
-Collega il telefono via USB, autorizza il debug
+Open Android Studio → Open → select the project folder
+Wait for Gradle sync (~500MB on first run)
+Connect the phone via USB, authorize debugging
 Run ▶ (Shift+F10)
 ```
 
-Per un APK installabile in modo permanente: `Build → Generate Signed Bundle / APK`, salvando il keystore **fuori dal repo** (es. `~/keystores/jarvis.jks` — senza quel file non potrai più aggiornare l'app installata).
+For a permanently installable APK: `Build → Generate Signed Bundle / APK`, saving the keystore **outside the repo** (e.g. `~/keystores/jarvis.jks` — without that file you can no longer update the installed app).
 
 ---
 
-*Costruito con l'assistenza di IA (Claude); architettura, scelte di modellazione e trade-off sono miei.*
+*Built with AI assistance (Claude); architecture, modeling choices and trade-offs are mine.*
